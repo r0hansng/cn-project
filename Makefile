@@ -9,7 +9,7 @@ ping-all:
 	i=1; \
 	for ip in "$$node_1" "$$node_2" "$$node_3" "$$node_4"; do \
 		if [ "$$i" -ne "$(NODE)" ]; then \
-			ping -c $(COUNT) "$$ip" | sed "s/$$ip/node_$$i/g"; \
+			ping -c $(COUNT) "$$ip"; \
 		fi; \
 		i=$$((i + 1)); \
 	done
