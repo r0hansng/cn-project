@@ -8,6 +8,15 @@ This project demonstrates a small private network service: `dnsmasq` resolves in
 Client -> dnsmasq -> app.<team>.test -> Nginx:443 -> Backend A:3001 / Backend B:3002
 ```
 
+## Team Members
+
+| Mac | Team Member | Enrollment Number |
+|---|---|---|
+| Mac 1 | Rohan Singh | `2401010391` |
+| Mac 2 | Pushpendra Singh | `2401010361` |
+| Mac 3 | Aniket Pathak | `2401020088` |
+| Mac 4 | Kapil Karan Mathur | `2401010209` |
+
 - `backend_a/`: Node.js backend A
 - `backend_b/`: Node.js backend B
 - `config/`: dnsmasq and Nginx configuration
