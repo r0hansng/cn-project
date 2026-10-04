@@ -21,7 +21,10 @@ dnsmasq-config:
 	printf '%s\n' \
 		"no-resolv" \
 		"address=/app.$${team}.test/$${node_2}" \
-		"address=/api.$${team}.test/$${node_2}" > config/dnsmasq.conf
+		"address=/api.$${team}.test/$${node_2}" \
+		"" \
+		"listen-address=127.0.0.1,$${node_1}" \
+		"interface=en0" > config/dnsmasq.conf
 
-dnsmasq-run: dnsmasq-config
+dnsmasq-run: 
 	sudo dnsmasq --no-daemon --conf-file=config/dnsmasq.conf
