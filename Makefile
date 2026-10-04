@@ -4,10 +4,15 @@ COUNT ?= 3
 
 ping-all:
 	. infra/env.sh; \
-	ping -c $(COUNT) $$node_1 | sed "s/$$node_1/node_1/g"; \
-	ping -c $(COUNT) $$node_2 | sed "s/$$node_2/node_2/g"; \
-	ping -c $(COUNT) $$node_3 | sed "s/$$node_3/node_3/g"; \
-	ping -c $(COUNT) $$node_4 | sed "s/$$node_4/node_4/g"
+	: "$${NODE:?Usage: make ping-all NODE=1}"; \
+	case "$(NODE)" in 1|2|3|4) ;; *) echo "NODE must be 1, 2, 3, or 4"; exit 1 ;; esac; \
+	i=1; \
+	for ip in "$$node_1" "$$node_2" "$$node_3" "$$node_4"; do \
+		if [ "$$i" -ne "$(NODE)" ]; then \
+			ping -c $(COUNT) "$$ip" | sed "s/$$ip/node_$$i/g"; \
+		fi; \
+		i=$$((i + 1)); \
+	done
 
 dnsmasq-config:
 	. infra/env.sh; \
