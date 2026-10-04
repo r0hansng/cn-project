@@ -62,10 +62,23 @@ Client -> dnsmasq -> app.<team>.test -> Nginx:443 -> Backend A:3001 / Backend B:
 
 The backends expose `GET /api/status`, which returns the backend identity and `status: ok`, and `GET /`, which returns cache headers and an `ETag`. The `X-Backend` response header identifies which service handled a request.
 
-Run connectivity checks from the project root with:
+## Makefile Usage
+
+Run commands from the project root:
+
+| Command | Purpose |
+|---|---|
+| `make ping-all NODE=2` | Ping every node except node 2 |
+| `make ping-all NODE=2 COUNT=5` | Send 5 packets to every node except node 2 |
+| `make dnsmasq-config` | Generate DNS records from `infra/env.sh` |
+| `make dnsmasq-run` | Generate the DNS config and start dnsmasq |
+
+`NODE` must be `1`, `2`, `3`, or `4`. The selected node is excluded from the ping test. `COUNT` defaults to `3`.
+
+For example, to skip node 2 and send one packet to the other nodes:
 
 ```sh
-make ping-all
+make ping-all NODE=2 COUNT=1
 ```
 
-Use `COUNT=5 make ping-all` to change the number of probes. See `docs/report-p1.md` for load-balancing, TLS, failure, and packet-capture validation procedures.
+See `docs/report-p1.md` for load-balancing, TLS, failure, and packet-capture validation procedures.
