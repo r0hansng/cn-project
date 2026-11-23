@@ -1,3 +1,5 @@
 *.pem
 *.cer
 
+DEMO_README.md
+.DS_Store
