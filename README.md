@@ -1,93 +1,113 @@
 # Private Network Service Platform
+**Computer Networks Course Project**  
+**Team Namespace:** `goodgoys` (`app.goodgoys.test` / `api.goodgoys.test`)  
+**Status:** Phase 1 & Phase 2 Complete
 
-This project demonstrates a small private network service: `dnsmasq` resolves internal hostnames, Nginx terminates HTTPS and load-balances requests, and two Node.js services provide redundant backends.
+This project implements a private local network platform spanning four physical macOS machines: authoritative primary and backup DNS resolvers (`dnsmasq`), high-availability HTTPS reverse proxying and load balancing (Nginx with TLS 1.3), isolated Node.js REST microservices, zero-trust packet filtering (`pf`), and live DNS-based edge cutover.
+
+---
+
+## Team Members & Node Allocation
+
+| Node | Team Member | Enrollment Number | Physical Role | Active IP (`infra/env.sh`) | Services / Ports |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Mac 1** | Rohan Singh | `2401010391` | Primary DNS + Test Client | `10.7.31.27` | `dnsmasq` (`local-ttl=10`), UDP/TCP `53` |
+| **Mac 2** | Pushpendra Singh | `2401010361` | Edge Proxy + Load Balancer | `10.7.21.198` | Nginx TLS (`proxy_next_upstream`), TCP `443` |
+| **Mac 3** | Aniket Pathak | `2401020088` | Backend A + Backup DNS + Standby Edge | `10.7.19.226` | Node.js (`3001`), `dnsmasq` backup (`53`), Standby Nginx (`443`), `pf` |
+| **Mac 4** | Kapil Karan Mathur | `2401010209` | Backend B + Test Client | `10.7.12.199` | Node.js (`3002`), `curl`, `dig`, Wireshark |
+
+---
 
 ## Architecture
 
 ```text
-Client -> dnsmasq -> app.<team>.test -> Nginx:443 -> Backend A:3001 / Backend B:3002
+                       [ Primary DNS: Mac 1 (10.7.31.27:53) ]
+                       [ Backup DNS:  Mac 3 (10.7.19.226:53) ]
+                                          ^
+                                          | DNS Query (app.goodgoys.test)
+                                          v
+[ Client Node (Mac 4) ] --------> [ Edge Nginx: Mac 2 (10.7.21.198:443) ]
+                                  (Standby Edge: Mac 3 - Cutover Target)
+                                          |
+                      +-------------------+-------------------+
+                      | (Round-Robin / Failover)               |
+                      v                                       v
+         [ Backend A: Mac 3 (3001) ]             [ Backend B: Mac 4 (3002) ]
+         (Firewall: Only Mac 2 allowed)          (Firewall: Only Mac 2 allowed)
 ```
 
-## Team Members
+---
 
-| Mac | Team Member | Enrollment Number |
-|---|---|---|
-| Mac 1 | Rohan Singh | `2401010391` |
-| Mac 2 | Pushpendra Singh | `2401010361` |
-| Mac 3 | Aniket Pathak | `2401020088` |
-| Mac 4 | Kapil Karan Mathur | `2401010209` |
+## Repository Structure
 
-- `backend_a/`: Node.js backend A
-- `backend_b/`: Node.js backend B
-- `config/`: dnsmasq and Nginx configuration
-- `infra/env.sh`: lab hostnames and node addresses
-- `docs/`: network design, validation, and evidence notes
-- `Makefile`: connectivity and dnsmasq configuration commands
+- `backend_a/`: Node.js Express REST microservice A (`port 3001`, `X-Backend: A`)
+- `backend_b/`: Node.js Express REST microservice B (`port 3002`, `X-Backend: B`)
+- `config/`: Configuration files for `dnsmasq`, backup `dnsmasq`, Nginx, and Standby Nginx
+- `infra/env.sh`: Centralized environment variables (`team`, `node_1`, `node_2`, `node_3`, `node_4`)
+- `docs/`: Comprehensive project deliverables:
+  - `docs/architecture.md`: Full topology, protocol mapping, and request sequence diagrams
+  - `docs/configuration-bundle.md`: Complete bundle of all DNS, Nginx, TLS, and PF configurations
+  - `docs/phase2-final-report.md`: Phase 2 resilience findings, test results, and learning summaries
+  - `docs/network-configuration.md`: Node IP and MAC inventory
+- `Makefile`: Complete project automation for Phase 1 and Phase 2 demonstrations
 
-## Prerequisites
+---
 
-- Node.js and npm on the backend hosts
-- Nginx with a TLS certificate and key for the configured hostname
-- `dnsmasq` on the DNS host
-- A shared network between the client, DNS host, edge host, and backend hosts
+## Quick Start & Verification
 
-## Setup
-
-1. Edit `infra/env.sh` with the addresses for your four nodes. Set `team` to the DNS suffix you will use.
-2. Install dependencies on each backend host:
-
-	```sh
-	cd backend_a && npm install
-	cd ../backend_b && npm install
-	```
-
-3. Start the backends:
-
-	```sh
-	# Host running backend A
-	cd backend_a && npm start
-
-	# Host running backend B
-	cd backend_b && node server.js
-	```
-
-4. Generate the local DNS records and start dnsmasq on the DNS host:
-
-	```sh
-	make dnsmasq-config
-	make dnsmasq-run
-	```
-
-5. Update `config/nginx.conf` with the backend addresses and TLS certificate paths, validate it with `sudo nginx -t`, and start or reload Nginx on the edge host.
-
-6. Configure clients to use the DNS host, then verify the service:
-
-	```sh
-	dig app.<team>.test
-	curl -v https://app.<team>.test/api/status
-	```
-
-## Validation
-
-The backends expose `GET /api/status`, which returns the backend identity and `status: ok`, and `GET /`, which returns cache headers and an `ETag`. The `X-Backend` response header identifies which service handled a request.
-
-## Makefile Usage
-
-Run commands from the project root:
-
-| Command | Purpose |
-|---|---|
-| `make ping-all NODE=2` | Ping every node except node 2 |
-| `make ping-all NODE=2 COUNT=5` | Send 5 packets to every node except node 2 |
-| `make dnsmasq-config` | Generate DNS records from `infra/env.sh` |
-| `make dnsmasq-run` | Generate the DNS config and start dnsmasq |
-
-`NODE` must be `1`, `2`, `3`, or `4`. The selected node is excluded from the ping test. `COUNT` defaults to `3`.
-
-For example, to skip node 2 and send one packet to the other nodes:
-
+### 1. Environment & Connectivity Check
+Load the environment and verify connectivity from any node:
 ```sh
-make ping-all NODE=2 COUNT=1
+source infra/env.sh
+make ping-all NODE=1 COUNT=3
 ```
 
-See `docs/report-p1.md` for load-balancing, TLS, failure, and packet-capture validation procedures.
+### 2. Start Services
+- **Primary DNS (Mac 1):**
+  ```sh
+  make dnsmasq-config
+  make dnsmasq-run
+  ```
+- **Edge Reverse Proxy (Mac 2):**
+  ```sh
+  make nginx-test
+  make nginx-start
+  ```
+- **Backend A (Mac 3) & Backend B (Mac 4):**
+  ```sh
+  make backend-a   # on Mac 3 (port 3001)
+  make backend-b   # on Mac 4 (port 3002)
+  ```
+
+---
+
+## Demonstration & Evaluation Commands (Makefile)
+
+### Phase 1 Baseline Demonstration
+From the client terminal (e.g. Mac 4 or Mac 1):
+```sh
+make demo-p1     # Runs DNS lookup, curls HTTPS endpoint, prints X-Backend
+make demo-lb     # Runs 10 requests showing round-robin alternation between A & B
+make demo-cache  # Displays Cache-Control: max-age=60 and ETag headers
+```
+
+### Phase 2 Hardened Extensions Demonstration
+- **Extension A (Backup DNS Resolver):**
+  - Mac 3: `make backup-dnsmasq-config && make backup-dnsmasq-run`
+  - Client: `make demo-backup-dns` (queries both primary and backup resolvers)
+- **Extension B (DNS TTL & Cache Flush):**
+  - Mac 1: `make dnsmasq-set-ttl TTL=10`
+  - Client: `make dns-flush` (clears local `mDNSResponder` cache immediately)
+- **Extension C (Service Isolation / Firewall):**
+  - Mac 3: `make firewall-isolate-backend-a` (blocks all client traffic to port 3001 except from Mac 2)
+  - Mac 3: `make firewall-disable` (restores default access)
+- **Extension D (High-Availability Backend Failover):**
+  - Configured with `proxy_next_upstream` in `config/nginx.conf`.
+  - Kill Backend A (`Ctrl+C` on Mac 3) $\to$ client requests continue 100% to Backend B without 502 errors.
+- **Extension E (Zero-Downtime Edge Cutover):**
+  - Mac 3: `make standby-nginx-start`
+  - Client: `make demo-cutover-watch` (streams live Edge IP resolution)
+  - Mac 1: `make dnsmasq-cutover-mac3` (flips DNS A record to Mac 3 live)
+  - Mac 1: `make dnsmasq-cutover-mac2` (restores DNS A record to Mac 2)
+
+Type `make help` for a quick list of all available commands.
