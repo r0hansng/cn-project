@@ -1,7 +1,15 @@
 # Private Network Service Platform
+
+![Status](https://img.shields.io/badge/status-phase%201%20%26%202%20complete-2ea44f?style=for-the-badge)
+![Network](https://img.shields.io/badge/network-private%20LAN%20%2F%20Wi--Fi-0969da?style=for-the-badge)
+![DNS](https://img.shields.io/badge/DNS-dnsmasq%20(primary%20%2B%20backup)-orange?style=for-the-badge)
+![Edge](https://img.shields.io/badge/edge-nginx%20(TLS%201.3%20%2B%20HA)-009639?style=for-the-badge)
+![Runtime](https://img.shields.io/badge/runtime-Node.js%20Express-339933?style=for-the-badge)
+![Security](https://img.shields.io/badge/security-packet%20filter%20(pf)-blueviolet?style=for-the-badge)
+
 **Computer Networks Course Project**  
 **Team Namespace:** `goodgoys` (`app.goodgoys.test` / `api.goodgoys.test`)  
-**Status:** Phase 1 & Phase 2 Complete
+**Deployment:** 4 macOS Physical Laptops (No Cloud Dependencies)
 
 This project implements a private local network platform spanning four physical macOS machines: authoritative primary and backup DNS resolvers (`dnsmasq`), high-availability HTTPS reverse proxying and load balancing (Nginx with TLS 1.3), isolated Node.js REST microservices, zero-trust packet filtering (`pf`), and live DNS-based edge cutover.
 
